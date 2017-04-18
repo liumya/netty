@@ -241,7 +241,18 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 ByteBuf data = (ByteBuf) msg;
                 first = cumulation == null;
                 if (first) {
-                    cumulation = data;
+                    if (data.isReadOnly()) {
+                        // If the ByteBuf is read-only we will do a memory copy as otherwise we can not write data
+                        // to it on the next channelRead(...) call.
+                        cumulation = ctx.alloc().buffer(data.readableBytes());
+                        try {
+                            cumulation.writeBytes(data);
+                        } finally {
+                            data.release();
+                        }
+                    } else {
+                        cumulation = data;
+                    }
                 } else {
                     cumulation = cumulator.cumulate(ctx.alloc(), cumulation, data);
                 }
