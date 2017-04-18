@@ -131,27 +131,30 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     }
 
     @Override
-    public  ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+    public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
         ObjectUtil.checkNotNull(command, "command");
         ObjectUtil.checkNotNull(unit, "unit");
-        if (delay < 0) {
-            throw new IllegalArgumentException(
-                    String.format("delay: %d (expected: >= 0)", delay));
+        ScheduledFutureTask<Void> task = new ScheduledFutureTask<Void>(
+                this, command, null, ScheduledFutureTask.deadlineNanos(unit.toNanos(delay)));
+        if (delay <= 0) {
+            execute(task);
+            return task;
         }
-        return schedule(new ScheduledFutureTask<Void>(
-                this, command, null, ScheduledFutureTask.deadlineNanos(unit.toNanos(delay))));
+        return schedule(task);
     }
 
     @Override
     public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         ObjectUtil.checkNotNull(callable, "callable");
         ObjectUtil.checkNotNull(unit, "unit");
-        if (delay < 0) {
-            throw new IllegalArgumentException(
-                    String.format("delay: %d (expected: >= 0)", delay));
+
+        ScheduledFutureTask<V> task = new ScheduledFutureTask<V>(
+                this, callable, ScheduledFutureTask.deadlineNanos(unit.toNanos(delay)));
+        if (delay <= 0) {
+            execute(task);
+            return task;
         }
-        return schedule(new ScheduledFutureTask<V>(
-                this, callable, ScheduledFutureTask.deadlineNanos(unit.toNanos(delay))));
+        return schedule(task);
     }
 
     @Override
